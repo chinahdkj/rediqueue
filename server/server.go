@@ -48,15 +48,22 @@ func NewServer(addr string) (*Server, error) {
 }
 
 func (s *Server) serve(l net.Listener) {
+
 	for {
+
 		conn, err := l.Accept()
+
 		if err != nil {
 			return
 		}
+
 		s.wg.Add(1)
+
 		go func() {
+
 			defer s.wg.Done()
 			defer conn.Close()
+
 			s.mu.Lock()
 			s.peers[conn] = struct{}{}
 			s.infoConns++
@@ -110,17 +117,25 @@ func (s *Server) Register(cmd string, f Cmd) error {
 }
 
 func (s *Server) servePeer(c net.Conn) {
+
 	r := bufio.NewReader(c)
+
 	cl := &Peer{
 		w: bufio.NewWriter(c),
 	}
+
 	for {
+
 		args, err := readArray(r)
+
 		if err != nil {
 			return
 		}
+
 		s.dispatch(cl, args)
+
 		cl.w.Flush()
+
 		if cl.closed {
 			c.Close()
 			return
@@ -129,10 +144,14 @@ func (s *Server) servePeer(c net.Conn) {
 }
 
 func (s *Server) dispatch(c *Peer, args []string) {
+
 	cmd, args := strings.ToUpper(args[0]), args[1:]
+
 	s.mu.Lock()
 	cb, ok := s.cmds[cmd]
+
 	s.mu.Unlock()
+
 	if !ok {
 		c.WriteError(errUnknownCommand(cmd))
 		return
@@ -141,6 +160,7 @@ func (s *Server) dispatch(c *Peer, args []string) {
 	s.mu.Lock()
 	s.infoCmds++
 	s.mu.Unlock()
+
 	cb(c, cmd, args)
 }
 

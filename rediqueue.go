@@ -15,7 +15,10 @@
 package rediqueue
 
 import (
+	"encoding/gob"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -87,18 +90,78 @@ func newRedisDB(id int, l *sync.Mutex) RedisDB {
 }
 
 // Run creates and Start()s a RediQueue.
-func Run() (*RediQueue, error) {
+func Run(bgsave bool) (*RediQueue, error) {
+
 	m := NewRediQueue()
 	return m, m.Start()
+}
+
+func RunAddr(addr string, saveDuration int) (*RediQueue, error) {
+
+	m := NewRediQueue()
+	m.Load()
+
+	if saveDuration > 0 {
+
+		go func() {
+
+			for {
+				select {
+				case <-time.After(time.Duration(saveDuration) * time.Minute):
+					log.Println("rediqueue save...")
+					m.Save()
+				}
+			}
+		}()
+	}
+
+	return m, m.StartAddr(addr)
+}
+
+func (m *RediQueue) Load() {
+
+	dump, err := os.OpenFile("./dump.rdb", os.O_RDONLY, 0666)
+
+	if err != nil {
+
+		if os.IsNotExist(err) {
+			return
+		}
+
+		panic("Error load... " + err.Error())
+	}
+
+	defer dump.Close()
+
+	gob.NewDecoder(dump).Decode(&m.dbs)
+}
+
+func (m *RediQueue) Save() {
+
+	m.Lock()
+	defer m.Unlock()
+
+	dump, err := os.OpenFile("./dump.rdb", os.O_WRONLY|os.O_CREATE, 0666)
+
+	if err != nil {
+		panic("Error bgsave... " + err.Error())
+	}
+
+	defer dump.Close()
+
+	gob.NewEncoder(dump).Encode(m.dbs)
 }
 
 // Start starts a server. It listens on a random port on localhost. See also
 // Addr().
 func (m *RediQueue) Start() error {
+
 	s, err := server.NewServer(fmt.Sprintf("127.0.0.1:%d", m.port))
+
 	if err != nil {
 		return err
 	}
+
 	return m.start(s)
 }
 
@@ -113,8 +176,10 @@ func (m *RediQueue) StartAddr(addr string) error {
 }
 
 func (m *RediQueue) start(s *server.Server) error {
+
 	m.Lock()
 	defer m.Unlock()
+
 	m.srv = s
 	m.port = s.Addr().Port
 

@@ -11,10 +11,13 @@ var ErrProtocol = errors.New("invalid request")
 
 // client always sends arrays with bulk strings
 func readArray(rd *bufio.Reader) ([]string, error) {
+
 	line, err := rd.ReadString('\n')
+
 	if err != nil {
 		return nil, err
 	}
+
 	if len(line) < 3 {
 		return nil, ErrProtocol
 	}
