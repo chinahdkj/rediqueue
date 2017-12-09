@@ -20,14 +20,14 @@ Implemented commands:
    - EXPIREAT
    - KEYS
    - MOVE
-   - PERSIST
-   - PEXPIRE
-   - PEXPIREAT
-   - PTTL
+   - ~~PERSIST~~
+   - ~~PEXPIRE~~
+   - ~~PEXPIREAT~~
+   - ~~PTTL~~
    - RENAME
    - RENAMENX
    - RANDOMKEY -- call math.rand.Seed(...) once before using.
-   - TTL
+   - ~~TTL~~
    - TYPE
    - SCAN
  - Transactions (complete)
@@ -128,3 +128,5 @@ Commands which will probably not be implemented:
     - ~~SLOWLOG~~
     - ~~SYNC~~
     - ~~TIME~~
+ - Hash
+ - String
