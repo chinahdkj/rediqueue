@@ -75,16 +75,6 @@ Implemented commands:
    - SUNIONSTORE
    - SSCAN
 
-
-Since rediqueue is intended to be used in unittests TTLs don't decrease
-automatically. You can use `TTL()` to get the TTL (as a time.Duration) of a
-key. It will return 0 when no TTL is set. EXPIREAT and PEXPIREAT values will be
-converted to a duration. For that you can either set m.SetTime(t) to use that
-time as the base for the (P)EXPIREAT conversion, or don't call SetTime(), in
-which case time.Now() will be used.
-`m.FastForward(d)` can be used to decrement all TTLs. All TTLs which become <=
-0 will be removed.
-
 ## Not supported
 
 Commands which will probably not be implemented:
