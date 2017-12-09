@@ -130,3 +130,4 @@ Commands which will probably not be implemented:
     - ~~TIME~~
  - Hash
  - String
+ - SortedSet
