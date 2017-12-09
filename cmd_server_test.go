@@ -1,4 +1,4 @@
-package miniredis
+package rediqueue
 
 import (
 	"testing"
@@ -16,9 +16,9 @@ func TestCmdServer(t *testing.T) {
 
 	// Set something
 	{
-		s.Set("aap", "niet")
-		s.Set("roos", "vuur")
-		s.DB(1).Set("noot", "mies")
+		s.Lpush("aap", "niet")
+		s.Lpush("roos", "vuur")
+		s.DB(1).Lpush("noot", "mies")
 	}
 
 	{

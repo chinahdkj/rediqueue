@@ -1,211 +1,24 @@
-package miniredis
+package rediqueue
 
 import (
 	"testing"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
 
-// Test EXPIRE. Keys with an expiration are called volatile in Redis parlance.
-func TestTTL(t *testing.T) {
-	s, err := Run()
-	ok(t, err)
-	defer s.Close()
-	c, err := redis.Dial("tcp", s.Addr())
-	ok(t, err)
-
-	// Not volatile yet
-	{
-		equals(t, time.Duration(0), s.TTL("foo"))
-		b, err := redis.Int(c.Do("TTL", "foo"))
-		ok(t, err)
-		equals(t, -2, b)
-	}
-
-	// Set something
-	{
-		_, err := c.Do("SET", "foo", "bar")
-		ok(t, err)
-		// key exists, but no Expire set yet
-		b, err := redis.Int(c.Do("TTL", "foo"))
-		ok(t, err)
-		equals(t, -1, b)
-
-		n, err := redis.Int(c.Do("EXPIRE", "foo", "1200"))
-		ok(t, err)
-		equals(t, 1, n) // EXPIRE returns 1 on success
-
-		equals(t, 1200*time.Second, s.TTL("foo"))
-		b, err = redis.Int(c.Do("TTL", "foo"))
-		ok(t, err)
-		equals(t, 1200, b)
-	}
-
-	// A SET resets the expire.
-	{
-		_, err := c.Do("SET", "foo", "bar")
-		ok(t, err)
-		b, err := redis.Int(c.Do("TTL", "foo"))
-		ok(t, err)
-		equals(t, -1, b)
-	}
-
-	// Set a non-existing key
-	{
-		n, err := redis.Int(c.Do("EXPIRE", "nokey", "1200"))
-		ok(t, err)
-		equals(t, 0, n) // EXPIRE returns 0 on failure.
-	}
-
-	// Remove an expire
-	{
-
-		// No key yet
-		n, err := redis.Int(c.Do("PERSIST", "exkey"))
-		ok(t, err)
-		equals(t, 0, n)
-
-		_, err = c.Do("SET", "exkey", "bar")
-		ok(t, err)
-
-		// No timeout yet
-		n, err = redis.Int(c.Do("PERSIST", "exkey"))
-		ok(t, err)
-		equals(t, 0, n)
-
-		_, err = redis.Int(c.Do("EXPIRE", "exkey", "1200"))
-		ok(t, err)
-
-		// All fine now
-		n, err = redis.Int(c.Do("PERSIST", "exkey"))
-		ok(t, err)
-		equals(t, 1, n)
-
-		// No TTL left
-		b, err := redis.Int(c.Do("TTL", "exkey"))
-		ok(t, err)
-		equals(t, -1, b)
-	}
-
-	// Hash key works fine, too
-	{
-		_, err := c.Do("HSET", "wim", "zus", "jet")
-		ok(t, err)
-		b, err := redis.Int(c.Do("EXPIRE", "wim", "1234"))
-		ok(t, err)
-		equals(t, 1, b)
-	}
-
-	{
-		_, err = c.Do("SET", "wim", "zus")
-		ok(t, err)
-		_, err = redis.Int(c.Do("EXPIRE", "wim", -1200))
-		ok(t, err)
-		equals(t, false, s.Exists("wim"))
-	}
-}
-
-func TestExpireat(t *testing.T) {
-	s, err := Run()
-	ok(t, err)
-	defer s.Close()
-	c, err := redis.Dial("tcp", s.Addr())
-	ok(t, err)
-
-	// Not volatile yet
-	{
-		equals(t, time.Duration(0), s.TTL("foo"))
-		b, err := redis.Int(c.Do("TTL", "foo"))
-		ok(t, err)
-		equals(t, -2, b)
-	}
-
-	// Set something
-	{
-		_, err := c.Do("SET", "foo", "bar")
-		ok(t, err)
-		// Key exists, but no ttl set.
-		b, err := redis.Int(c.Do("TTL", "foo"))
-		ok(t, err)
-		equals(t, -1, b)
-
-		s.SetTime(time.Unix(1234567890, 0))
-		n, err := redis.Int(c.Do("EXPIREAT", "foo", 1234567890+100))
-		ok(t, err)
-		equals(t, 1, n) // EXPIREAT returns 1 on success.
-
-		equals(t, 100*time.Second, s.TTL("foo"))
-		b, err = redis.Int(c.Do("TTL", "foo"))
-		ok(t, err)
-		equals(t, 100, b)
-		equals(t, 100*time.Second, s.TTL("foo"))
-	}
-}
-
-func TestPexpire(t *testing.T) {
-	s, err := Run()
-	ok(t, err)
-	defer s.Close()
-	c, err := redis.Dial("tcp", s.Addr())
-	ok(t, err)
-
-	// Key exists
-	{
-		ok(t, s.Set("foo", "bar"))
-		b, err := redis.Int(c.Do("PEXPIRE", "foo", 12))
-		ok(t, err)
-		equals(t, 1, b)
-
-		e, err := redis.Int(c.Do("PTTL", "foo"))
-		ok(t, err)
-		equals(t, 12, e)
-
-		equals(t, 12*time.Millisecond, s.TTL("foo"))
-	}
-	// Key doesn't exist
-	{
-		b, err := redis.Int(c.Do("PEXPIRE", "nosuch", 12))
-		ok(t, err)
-		equals(t, 0, b)
-
-		e, err := redis.Int(c.Do("PTTL", "nosuch"))
-		ok(t, err)
-		equals(t, -2, e)
-	}
-
-	// No expire
-	{
-		s.Set("aap", "noot")
-		e, err := redis.Int(c.Do("PTTL", "aap"))
-		ok(t, err)
-		equals(t, -1, e)
-	}
-}
-
 func TestDel(t *testing.T) {
+
 	s, err := Run()
 	ok(t, err)
-	defer s.Close()
-	c, err := redis.Dial("tcp", s.Addr())
-	ok(t, err)
 
-	s.Set("foo", "bar")
-	s.HSet("aap", "noot", "mies")
-	s.Set("one", "two")
-	s.SetTTL("one", time.Second*1234)
-	s.Set("three", "four")
-	r, err := redis.Int(c.Do("DEL", "one", "aap", "nosuch"))
-	ok(t, err)
-	equals(t, 2, r)
-	equals(t, time.Duration(0), s.TTL("one"))
+	defer s.Close()
+
+	s.Lpush("foo", "123")
+	s.SetAdd("bar", "123", "234")
 
 	// Direct also works:
-	s.Set("foo", "bar")
-	s.Del("foo")
-	got, err := s.Get("foo")
-	equals(t, ErrKeyNotFound, err)
-	equals(t, "", got)
+	r := s.Del("foo")
+	equals(t, true, r)
 }
 
 func TestType(t *testing.T) {
@@ -214,22 +27,6 @@ func TestType(t *testing.T) {
 	defer s.Close()
 	c, err := redis.Dial("tcp", s.Addr())
 	ok(t, err)
-
-	// String key
-	{
-		s.Set("foo", "bar!")
-		v, err := redis.String(c.Do("TYPE", "foo"))
-		ok(t, err)
-		equals(t, "string", v)
-	}
-
-	// Hash key
-	{
-		s.HSet("aap", "noot", "mies")
-		v, err := redis.String(c.Do("TYPE", "aap"))
-		ok(t, err)
-		equals(t, "hash", v)
-	}
 
 	// New key
 	{
@@ -248,7 +45,8 @@ func TestType(t *testing.T) {
 
 	// Direct usage:
 	{
-		equals(t, "hash", s.Type("aap"))
+		redis.Int(c.Do("LPUSH", "aap", "123"))
+		equals(t, "list", s.Type("aap"))
 		equals(t, "", s.Type("nokey"))
 	}
 }
@@ -262,7 +60,7 @@ func TestExists(t *testing.T) {
 
 	// String key
 	{
-		s.Set("foo", "bar!")
+		s.Lpush("foo", "1")
 		v, err := redis.Int(c.Do("EXISTS", "foo"))
 		ok(t, err)
 		equals(t, 1, v)
@@ -270,7 +68,7 @@ func TestExists(t *testing.T) {
 
 	// Hash key
 	{
-		s.HSet("aap", "noot", "mies")
+		s.SetAdd("aap", "2")
 		v, err := redis.Int(c.Do("EXISTS", "aap"))
 		ok(t, err)
 		equals(t, 1, v)
@@ -316,7 +114,7 @@ func TestMove(t *testing.T) {
 
 	// No problem.
 	{
-		s.Set("foo", "bar!")
+		s.Lpush("foo", "bar!")
 		v, err := redis.Int(c.Do("MOVE", "foo", 1))
 		ok(t, err)
 		equals(t, 1, v)
@@ -331,22 +129,20 @@ func TestMove(t *testing.T) {
 
 	// Target key already exists.
 	{
-		s.DB(0).Set("two", "orig")
-		s.DB(1).Set("two", "taken")
+		s.DB(0).Lpush("two", "orig")
+		s.DB(1).Lpush("two", "taken")
 		v, err := redis.Int(c.Do("MOVE", "two", 1))
 		ok(t, err)
 		equals(t, 0, v)
-		s.CheckGet(t, "two", "orig")
+		s.CheckList(t, "two", "orig")
 	}
 
 	// TTL is also moved
 	{
-		s.DB(0).Set("one", "two")
-		s.DB(0).SetTTL("one", time.Second*4242)
+		s.DB(0).Lpush("one", "two")
 		v, err := redis.Int(c.Do("MOVE", "one", 1))
 		ok(t, err)
 		equals(t, 1, v)
-		equals(t, s.DB(1).TTL("one"), time.Second*4242)
 	}
 
 	// Wrong usage
@@ -369,10 +165,10 @@ func TestKeys(t *testing.T) {
 	c, err := redis.Dial("tcp", s.Addr())
 	ok(t, err)
 
-	s.Set("foo", "bar!")
-	s.Set("foobar", "bar!")
-	s.Set("barfoo", "bar!")
-	s.Set("fooooo", "bar!")
+	s.Lpush("foo", "bar!")
+	s.Lpush("foobar", "bar!")
+	s.Lpush("barfoo", "bar!")
+	s.Lpush("fooooo", "bar!")
 
 	{
 		v, err := redis.Strings(c.Do("KEYS", "foo"))
@@ -423,9 +219,9 @@ func TestRandom(t *testing.T) {
 		equals(t, nil, v)
 	}
 
-	s.Set("one", "bar!")
-	s.Set("two", "bar!")
-	s.Set("three", "bar!")
+	s.Lpush("one", "bar!")
+	s.Lpush("two", "bar!")
+	s.Lpush("three", "bar!")
 
 	// No idea which key will be returned.
 	{
@@ -462,40 +258,13 @@ func TestRename(t *testing.T) {
 
 	// Move a string key
 	{
-		s.Set("from", "value")
+		s.Lpush("from", "value")
 		str, err := redis.String(c.Do("RENAME", "from", "to"))
 		ok(t, err)
 		equals(t, "OK", str)
 		equals(t, false, s.Exists("from"))
 		equals(t, true, s.Exists("to"))
-		s.CheckGet(t, "to", "value")
-	}
-
-	// Move a hash key
-	{
-		s.HSet("from", "key", "value")
-		str, err := redis.String(c.Do("RENAME", "from", "to"))
-		ok(t, err)
-		equals(t, "OK", str)
-		equals(t, false, s.Exists("from"))
-		equals(t, true, s.Exists("to"))
-		equals(t, "value", s.HGet("to", "key"))
-	}
-
-	// Move over something which exists
-	{
-		s.Set("from", "string value")
-		s.HSet("to", "key", "value")
-		s.SetTTL("from", time.Second*999999)
-
-		str, err := redis.String(c.Do("RENAME", "from", "to"))
-		ok(t, err)
-		equals(t, "OK", str)
-		equals(t, false, s.Exists("from"))
-		equals(t, true, s.Exists("to"))
-		s.CheckGet(t, "to", "string value")
-		equals(t, time.Duration(0), s.TTL("from"))
-		equals(t, time.Second*999999, s.TTL("to"))
+		s.CheckList(t, "to", "value")
 	}
 
 	// Wrong usage
@@ -518,7 +287,7 @@ func TestScan(t *testing.T) {
 
 	// We cheat with scan. It always returns everything.
 
-	s.Set("key", "value")
+	s.Lpush("key", "value")
 
 	// No problem
 	{
@@ -564,8 +333,8 @@ func TestScan(t *testing.T) {
 
 	// MATCH
 	{
-		s.Set("aap", "noot")
-		s.Set("mies", "wim")
+		s.Lpush("aap", "noot")
+		s.Lpush("mies", "wim")
 		res, err := redis.Values(c.Do("SCAN", 0, "MATCH", "mi*"))
 		ok(t, err)
 		equals(t, 2, len(res))
@@ -614,27 +383,29 @@ func TestRenamenx(t *testing.T) {
 
 	// Move a string key
 	{
-		s.Set("from", "value")
+		s.Lpush("from", "value")
 		n, err := redis.Int(c.Do("RENAMENX", "from", "to"))
 		ok(t, err)
 		equals(t, 1, n)
 		equals(t, false, s.Exists("from"))
 		equals(t, true, s.Exists("to"))
-		s.CheckGet(t, "to", "value")
+		s.CheckList(t, "to", "value")
+		c.Do("DEL", "to")
 	}
 
 	// Move over something which exists
 	{
-		s.Set("from", "string value")
-		s.Set("to", "value")
+		s.Lpush("from", "string value")
+		s.Lpush("to", "value")
 
 		n, err := redis.Int(c.Do("RENAMENX", "from", "to"))
 		ok(t, err)
 		equals(t, 0, n)
 		equals(t, true, s.Exists("from"))
 		equals(t, true, s.Exists("to"))
-		s.CheckGet(t, "from", "string value")
-		s.CheckGet(t, "to", "value")
+
+		s.CheckList(t, "from", "string value")
+		s.CheckList(t, "to", "value")
 	}
 
 	// Wrong usage

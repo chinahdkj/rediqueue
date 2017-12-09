@@ -1,14 +1,12 @@
-package miniredis_test
+package rediqueue_test
 
 import (
-	"time"
-
-	"github.com/alicebob/miniredis"
+	"github.com/chinahdkj/rediqueue"
 	"github.com/garyburd/redigo/redis"
 )
 
 func Example() {
-	s, err := miniredis.Run()
+	s, err := rediqueue.Run()
 	if err != nil {
 		panic(err)
 	}
@@ -16,29 +14,22 @@ func Example() {
 
 	// Configure you application to connect to redis at s.Addr()
 	// Any redis client should work, as long as you use redis commands which
-	// miniredis implements.
+	// rediqueue implements.
 	c, err := redis.Dial("tcp", s.Addr())
 	if err != nil {
 		panic(err)
 	}
-	if _, err = c.Do("SET", "foo", "bar"); err != nil {
+	if _, err = c.Do("LPUSH", "foo", "bar"); err != nil {
 		panic(err)
 	}
 
-	// You can ask miniredis about keys directly, without going over the network.
-	if got, err := s.Get("foo"); err != nil || got != "bar" {
+	// You can ask rediqueue about keys directly, without going over the network.
+	if got, err := s.Lpop("foo"); err != nil || got != "bar" {
 		panic("Didn't get 'bar' back")
 	}
 	// Or with a DB id
-	if _, err := s.DB(42).Get("foo"); err != miniredis.ErrKeyNotFound {
+	if _, err := s.DB(42).Lpop("foo"); err != rediqueue.ErrKeyNotFound {
 		panic("didn't use a different database")
-	}
-
-	// Test key with expiration
-	s.SetTTL("foo", 60*time.Second)
-	s.FastForward(60 * time.Second)
-	if s.Exists("foo") {
-		panic("expect key to be expired")
 	}
 
 	// Or use a Check* function which Fail()s if the key is not what we expect

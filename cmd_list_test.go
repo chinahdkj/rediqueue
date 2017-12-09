@@ -1,4 +1,4 @@
-package miniredis
+package rediqueue
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-func setup(t *testing.T) (*Miniredis, redis.Conn, func()) {
+func setup(t *testing.T) (*RediQueue, redis.Conn, func()) {
 	s, err := Run()
 	ok(t, err)
 	c1, err := redis.Dial("tcp", s.Addr())
@@ -15,7 +15,7 @@ func setup(t *testing.T) (*Miniredis, redis.Conn, func()) {
 	return s, c1, func() { s.Close() }
 }
 
-func setup2(t *testing.T) (*Miniredis, redis.Conn, redis.Conn, func()) {
+func setup2(t *testing.T) (*RediQueue, redis.Conn, redis.Conn, func()) {
 	s, err := Run()
 	ok(t, err)
 	c1, err := redis.Dial("tcp", s.Addr())
@@ -86,7 +86,7 @@ func TestLpush(t *testing.T) {
 		assert(t, err != nil, "LPUSH error")
 		_, err = redis.Int(c.Do("LPUSH", "l"))
 		assert(t, err != nil, "LPUSH error")
-		_, err = redis.String(c.Do("SET", "str", "value"))
+		_, err = redis.Int(c.Do("SADD", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("LPUSH", "str", "noot", "mies"))
 		assert(t, err != nil, "LPUSH error")
@@ -143,7 +143,7 @@ func TestLpushx(t *testing.T) {
 		assert(t, err != nil, "LPUSHX error")
 		_, err = redis.Int(c.Do("LPUSHX", "l"))
 		assert(t, err != nil, "LPUSHX error")
-		_, err := redis.String(c.Do("SET", "str", "value"))
+		_, err := redis.Int(c.Do("SADD", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("LPUSHX", "str", "mies"))
 		assert(t, err != nil, "LPUSHX error")
@@ -248,7 +248,7 @@ func TestRPushPop(t *testing.T) {
 
 	// Wrong type of key
 	{
-		_, err := redis.String(c.Do("SET", "str", "value"))
+		_, err := redis.Int(c.Do("SADD", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("RPUSH", "str", "noot", "mies"))
 		assert(t, err != nil, "RPUSH error")
@@ -346,7 +346,7 @@ func TestLindex(t *testing.T) {
 
 	// Wrong type of key
 	{
-		_, err := redis.String(c.Do("SET", "str", "value"))
+		_, err := redis.Int(c.Do("SADD", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("LINDEX", "str", "1"))
 		assert(t, err != nil, "LINDEX error")
@@ -383,7 +383,7 @@ func TestLlen(t *testing.T) {
 
 	// Wrong type of key
 	{
-		_, err := redis.String(c.Do("SET", "str", "value"))
+		_, err := redis.Int(c.Do("SADD", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("LLEN", "str"))
 		assert(t, err != nil, "LLEN error")
@@ -428,7 +428,7 @@ func TestLtrim(t *testing.T) {
 
 	// Wrong type of key
 	{
-		s.Set("str", "string!")
+		s.SetAdd("str", "string!")
 		_, err = redis.Int(c.Do("LTRIM", "str", 0, 1))
 		assert(t, err != nil, "LTRIM error")
 		// Too many/little/wrong arguments
@@ -525,7 +525,7 @@ func TestLrem(t *testing.T) {
 		assert(t, err != nil, "LREM error")
 		_, err = redis.String(c.Do("LREM", "l", 1, "aap", "toomany"))
 		assert(t, err != nil, "LREM error")
-		s.Set("str", "string!")
+		s.SetAdd("str", "string!")
 		_, err = redis.Int(c.Do("LREM", "str", 0, "aap"))
 		assert(t, err != nil, "LREM error")
 	}
@@ -585,7 +585,7 @@ func TestLset(t *testing.T) {
 		assert(t, err != nil, "SET error")
 		_, err = redis.String(c.Do("LSET", "l", 1, "aap", "toomany"))
 		assert(t, err != nil, "LSET error")
-		s.Set("str", "string!")
+		s.SetAdd("str", "string!")
 		_, err = redis.Int(c.Do("LSET", "str", 0, "aap"))
 		assert(t, err != nil, "LSET error")
 	}
@@ -669,7 +669,7 @@ func TestLinsert(t *testing.T) {
 		_, err = redis.String(c.Do("LINSERT", "l", "wrong", "value", "value",
 			"toomany"))
 		assert(t, err != nil, "LINSERT error")
-		s.Set("str", "string!")
+		s.SetAdd("str", "string!")
 		_, err = redis.String(c.Do("LINSERT", "str", "before", "value", "value"))
 		assert(t, err != nil, "LINSERT error")
 	}
@@ -743,7 +743,7 @@ func TestRpoplpush(t *testing.T) {
 		assert(t, err != nil, "RPOPLPUSH error")
 		_, err = redis.String(c.Do("RPOPLPUSH", "too", "many", "arguments"))
 		assert(t, err != nil, "RPOPLPUSH error")
-		s.Set("str", "string!")
+		s.SetAdd("str", "string!")
 		_, err = redis.String(c.Do("RPOPLPUSH", "str", "src"))
 		assert(t, err != nil, "RPOPLPUSH error")
 		_, err = redis.String(c.Do("RPOPLPUSH", "src", "str"))
@@ -800,7 +800,7 @@ func TestRpushx(t *testing.T) {
 		assert(t, err != nil, "RPUSHX error")
 		_, err = redis.Int(c.Do("RPUSHX", "l"))
 		assert(t, err != nil, "RPUSHX error")
-		s.Set("str", "string!")
+		s.SetAdd("str", "string!")
 		_, err = redis.Int(c.Do("RPUSHX", "str", "value"))
 		assert(t, err != nil, "RPUSHX error")
 	}
@@ -926,15 +926,15 @@ func TestBrpopTx(t *testing.T) {
 		s, err := redis.String(c.Do("BRPOP", "l1", 3))
 		ok(t, err)
 		equals(t, "QUEUED", s)
-		s, err = redis.String(c.Do("SET", "foo", "bar"))
-		ok(t, err)
-		equals(t, "QUEUED", s)
+
+		c.Do("LPUSH", "l1", "1")
 
 		v, err := redis.Values(c.Do("EXEC"))
 		ok(t, err)
 		equals(t, 2, len(redis.Args(v)))
+
 		equals(t, nil, v[0])
-		equals(t, "OK", v[1])
+		equals(t, int64(1), v[1])
 	}
 
 	// Now set something
@@ -946,7 +946,7 @@ func TestBrpopTx(t *testing.T) {
 		s, err := redis.String(c.Do("BRPOP", "l1", 3))
 		ok(t, err)
 		equals(t, "QUEUED", s)
-		s, err = redis.String(c.Do("SET", "foo", "bar"))
+		s, err = redis.String(c.Do("SADD", "foo", "bar"))
 		ok(t, err)
 		equals(t, "QUEUED", s)
 
@@ -955,7 +955,7 @@ func TestBrpopTx(t *testing.T) {
 		equals(t, 2, len(redis.Args(v)))
 		equals(t, "l1", string(v[0].([]interface{})[0].([]uint8)))
 		equals(t, "e1", string(v[0].([]interface{})[1].([]uint8)))
-		equals(t, "OK", v[1])
+		equals(t, int64(1), v[1])
 	}
 }
 

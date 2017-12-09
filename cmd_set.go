@@ -1,17 +1,17 @@
 // Commands from http://redis.io/commands#set
 
-package miniredis
+package rediqueue
 
 import (
 	"math/rand"
 	"strconv"
 	"strings"
 
-	"github.com/alicebob/miniredis/server"
+	"github.com/chinahdkj/rediqueue/server"
 )
 
 // commandsSet handles all set value operations.
-func commandsSet(m *Miniredis) {
+func commandsSet(m *RediQueue) {
 	m.srv.Register("SADD", m.cmdSadd)
 	m.srv.Register("SCARD", m.cmdScard)
 	m.srv.Register("SDIFF", m.cmdSdiff)
@@ -30,7 +30,7 @@ func commandsSet(m *Miniredis) {
 }
 
 // SADD
-func (m *Miniredis) cmdSadd(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSadd(c *server.Peer, cmd string, args []string) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -56,7 +56,7 @@ func (m *Miniredis) cmdSadd(c *server.Peer, cmd string, args []string) {
 }
 
 // SCARD
-func (m *Miniredis) cmdScard(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdScard(c *server.Peer, cmd string, args []string) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -87,7 +87,7 @@ func (m *Miniredis) cmdScard(c *server.Peer, cmd string, args []string) {
 }
 
 // SDIFF
-func (m *Miniredis) cmdSdiff(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSdiff(c *server.Peer, cmd string, args []string) {
 	if len(args) < 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -116,7 +116,7 @@ func (m *Miniredis) cmdSdiff(c *server.Peer, cmd string, args []string) {
 }
 
 // SDIFFSTORE
-func (m *Miniredis) cmdSdiffstore(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSdiffstore(c *server.Peer, cmd string, args []string) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -137,14 +137,14 @@ func (m *Miniredis) cmdSdiffstore(c *server.Peer, cmd string, args []string) {
 			return
 		}
 
-		db.del(dest, true)
+		db.del(dest)
 		db.setSet(dest, set)
 		c.WriteInt(len(set))
 	})
 }
 
 // SINTER
-func (m *Miniredis) cmdSinter(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSinter(c *server.Peer, cmd string, args []string) {
 	if len(args) < 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -173,7 +173,7 @@ func (m *Miniredis) cmdSinter(c *server.Peer, cmd string, args []string) {
 }
 
 // SINTERSTORE
-func (m *Miniredis) cmdSinterstore(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSinterstore(c *server.Peer, cmd string, args []string) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -194,14 +194,14 @@ func (m *Miniredis) cmdSinterstore(c *server.Peer, cmd string, args []string) {
 			return
 		}
 
-		db.del(dest, true)
+		db.del(dest)
 		db.setSet(dest, set)
 		c.WriteInt(len(set))
 	})
 }
 
 // SISMEMBER
-func (m *Miniredis) cmdSismember(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSismember(c *server.Peer, cmd string, args []string) {
 	if len(args) != 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -235,7 +235,7 @@ func (m *Miniredis) cmdSismember(c *server.Peer, cmd string, args []string) {
 }
 
 // SMEMBERS
-func (m *Miniredis) cmdSmembers(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSmembers(c *server.Peer, cmd string, args []string) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -270,7 +270,7 @@ func (m *Miniredis) cmdSmembers(c *server.Peer, cmd string, args []string) {
 }
 
 // SMOVE
-func (m *Miniredis) cmdSmove(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSmove(c *server.Peer, cmd string, args []string) {
 	if len(args) != 3 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -311,7 +311,7 @@ func (m *Miniredis) cmdSmove(c *server.Peer, cmd string, args []string) {
 }
 
 // SPOP
-func (m *Miniredis) cmdSpop(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSpop(c *server.Peer, cmd string, args []string) {
 	if len(args) == 0 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -387,7 +387,7 @@ func (m *Miniredis) cmdSpop(c *server.Peer, cmd string, args []string) {
 }
 
 // SRANDMEMBER
-func (m *Miniredis) cmdSrandmember(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSrandmember(c *server.Peer, cmd string, args []string) {
 	if len(args) < 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -458,7 +458,7 @@ func (m *Miniredis) cmdSrandmember(c *server.Peer, cmd string, args []string) {
 }
 
 // SREM
-func (m *Miniredis) cmdSrem(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSrem(c *server.Peer, cmd string, args []string) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -488,7 +488,7 @@ func (m *Miniredis) cmdSrem(c *server.Peer, cmd string, args []string) {
 }
 
 // SUNION
-func (m *Miniredis) cmdSunion(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSunion(c *server.Peer, cmd string, args []string) {
 	if len(args) < 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -517,7 +517,7 @@ func (m *Miniredis) cmdSunion(c *server.Peer, cmd string, args []string) {
 }
 
 // SUNIONSTORE
-func (m *Miniredis) cmdSunionstore(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSunionstore(c *server.Peer, cmd string, args []string) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -538,14 +538,14 @@ func (m *Miniredis) cmdSunionstore(c *server.Peer, cmd string, args []string) {
 			return
 		}
 
-		db.del(dest, true)
+		db.del(dest)
 		db.setSet(dest, set)
 		c.WriteInt(len(set))
 	})
 }
 
 // SSCAN
-func (m *Miniredis) cmdSscan(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSscan(c *server.Peer, cmd string, args []string) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))

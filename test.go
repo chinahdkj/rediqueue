@@ -1,4 +1,4 @@
-package miniredis
+package rediqueue
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package miniredis
+package rediqueue
 
 import (
 	"sort"
@@ -65,7 +65,7 @@ func TestSadd(t *testing.T) {
 
 	// Wrong type of key
 	{
-		_, err := redis.String(c.Do("SET", "str", "value"))
+		_, err := redis.Int(c.Do("LPUSH", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("SADD", "str", "hi"))
 		assert(t, err != nil, "SADD error")
@@ -120,7 +120,7 @@ func TestSismember(t *testing.T) {
 
 	// Wrong type of key
 	{
-		_, err := redis.String(c.Do("SET", "str", "value"))
+		_, err := redis.Int(c.Do("LPUSH", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("SISMEMBER", "str"))
 		assert(t, err != nil, "SISMEMBER error")
@@ -182,7 +182,7 @@ func TestSrem(t *testing.T) {
 
 	// Wrong type of key
 	{
-		_, err := redis.String(c.Do("SET", "str", "value"))
+		_, err := redis.Int(c.Do("LPUSH", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("SREM", "str", "value"))
 		assert(t, err != nil, "SREM error")
@@ -248,7 +248,7 @@ func TestSmove(t *testing.T) {
 
 	// Wrong type of key
 	{
-		_, err := redis.String(c.Do("SET", "str", "value"))
+		_, err := redis.Int(c.Do("LPUSH", "str", "value"))
 		ok(t, err)
 		_, err = redis.Int(c.Do("SMOVE", "str", "dst", "value"))
 		assert(t, err != nil, "SMOVE error")
@@ -298,7 +298,7 @@ func TestSpop(t *testing.T) {
 	// various errors
 	{
 		s.SetAdd("chk", "aap", "noot")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 
 		_, err = redis.String(c.Do("SMOVE"))
 		assert(t, err != nil, "SMOVE error")
@@ -362,7 +362,7 @@ func TestSrandmember(t *testing.T) {
 	// Various errors
 	{
 		s.SetAdd("chk", "aap", "noot")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 
 		_, err = redis.String(c.Do("SRANDMEMBER"))
 		assert(t, err != nil, "SRANDMEMBER error")
@@ -420,7 +420,7 @@ func TestSdiff(t *testing.T) {
 	// Various errors
 	{
 		s.SetAdd("chk", "aap", "noot")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 
 		_, err = redis.String(c.Do("SDIFF"))
 		assert(t, err != nil, "SDIFF error")
@@ -454,7 +454,7 @@ func TestSdiffstore(t *testing.T) {
 	// Various errors
 	{
 		s.SetAdd("chk", "aap", "noot")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 
 		_, err = redis.String(c.Do("SDIFFSTORE"))
 		assert(t, err != nil, "SDIFFSTORE error")
@@ -510,7 +510,7 @@ func TestSinter(t *testing.T) {
 	// Various errors
 	{
 		s.SetAdd("chk", "aap", "noot")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 
 		_, err = redis.String(c.Do("SINTER"))
 		assert(t, err != nil, "SINTER error")
@@ -544,7 +544,7 @@ func TestSinterstore(t *testing.T) {
 	// Various errors
 	{
 		s.SetAdd("chk", "aap", "noot")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 
 		_, err = redis.String(c.Do("SINTERSTORE"))
 		assert(t, err != nil, "SINTERSTORE error")
@@ -601,7 +601,7 @@ func TestSunion(t *testing.T) {
 	// Various errors
 	{
 		s.SetAdd("chk", "aap", "noot")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 
 		_, err = redis.String(c.Do("SUNION"))
 		assert(t, err != nil, "SUNION error")
@@ -635,7 +635,7 @@ func TestSunionstore(t *testing.T) {
 	// Various errors
 	{
 		s.SetAdd("chk", "aap", "noot")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 
 		_, err = redis.String(c.Do("SUNIONSTORE"))
 		assert(t, err != nil, "SUNIONSTORE error")
@@ -728,7 +728,7 @@ func TestSscan(t *testing.T) {
 		assert(t, err != nil, "do SSCAN error")
 		_, err = redis.Int(c.Do("SSCAN", "set", 1, "COUNT", "noint"))
 		assert(t, err != nil, "do SSCAN error")
-		s.Set("str", "value")
+		s.Lpush("str", "value")
 		_, err = redis.Int(c.Do("SSCAN", "str", 1))
 		assert(t, err != nil, "do SSCAN error")
 	}

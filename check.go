@@ -1,4 +1,4 @@
-package miniredis
+package rediqueue
 
 // 'Fail' methods.
 
@@ -15,24 +15,10 @@ type T interface {
 	Fail()
 }
 
-// CheckGet does not call Errorf() iff there is a string key with the
-// expected value. Normal use case is `m.CheckGet(t, "username", "theking")`.
-func (m *Miniredis) CheckGet(t T, key, expected string) {
-	found, err := m.Get(key)
-	if err != nil {
-		lError(t, "GET error, key %#v: %v", key, err)
-		return
-	}
-	if found != expected {
-		lError(t, "GET error, key %#v: Expected %#v, got %#v", key, expected, found)
-		return
-	}
-}
-
 // CheckList does not call Errorf() iff there is a list key with the
 // expected values.
 // Normal use case is `m.CheckGet(t, "favorite_colors", "red", "green", "infrared")`.
-func (m *Miniredis) CheckList(t T, key string, expected ...string) {
+func (m *RediQueue) CheckList(t T, key string, expected ...string) {
 	found, err := m.List(key)
 	if err != nil {
 		lError(t, "List error, key %#v: %v", key, err)
@@ -47,7 +33,7 @@ func (m *Miniredis) CheckList(t T, key string, expected ...string) {
 // CheckSet does not call Errorf() iff there is a set key with the
 // expected values.
 // Normal use case is `m.CheckSet(t, "visited", "Rome", "Stockholm", "Dublin")`.
-func (m *Miniredis) CheckSet(t T, key string, expected ...string) {
+func (m *RediQueue) CheckSet(t T, key string, expected ...string) {
 	found, err := m.Members(key)
 	if err != nil {
 		lError(t, "Set error, key %#v: %v", key, err)

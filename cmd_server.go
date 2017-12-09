@@ -1,21 +1,21 @@
 // Commands from http://redis.io/commands#server
 
-package miniredis
+package rediqueue
 
 import (
 	"strings"
 
-	"github.com/alicebob/miniredis/server"
+	"github.com/chinahdkj/rediqueue/server"
 )
 
-func commandsServer(m *Miniredis) {
+func commandsServer(m *RediQueue) {
 	m.srv.Register("DBSIZE", m.cmdDbsize)
 	m.srv.Register("FLUSHALL", m.cmdFlushall)
 	m.srv.Register("FLUSHDB", m.cmdFlushdb)
 }
 
 // DBSIZE
-func (m *Miniredis) cmdDbsize(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdDbsize(c *server.Peer, cmd string, args []string) {
 	if len(args) > 0 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -33,7 +33,7 @@ func (m *Miniredis) cmdDbsize(c *server.Peer, cmd string, args []string) {
 }
 
 // FLUSHALL
-func (m *Miniredis) cmdFlushall(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdFlushall(c *server.Peer, cmd string, args []string) {
 	if len(args) > 0 && strings.ToLower(args[0]) == "async" {
 		args = args[1:]
 	}
@@ -54,7 +54,7 @@ func (m *Miniredis) cmdFlushall(c *server.Peer, cmd string, args []string) {
 }
 
 // FLUSHDB
-func (m *Miniredis) cmdFlushdb(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdFlushdb(c *server.Peer, cmd string, args []string) {
 	if len(args) > 0 && strings.ToLower(args[0]) == "async" {
 		args = args[1:]
 	}

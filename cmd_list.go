@@ -1,13 +1,13 @@
 // Commands from http://redis.io/commands#list
 
-package miniredis
+package rediqueue
 
 import (
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/alicebob/miniredis/server"
+	"github.com/chinahdkj/rediqueue/server"
 )
 
 type leftright int
@@ -18,7 +18,7 @@ const (
 )
 
 // commandsList handles list commands (mostly L*)
-func commandsList(m *Miniredis) {
+func commandsList(m *RediQueue) {
 	m.srv.Register("BLPOP", m.cmdBlpop)
 	m.srv.Register("BRPOP", m.cmdBrpop)
 	m.srv.Register("BRPOPLPUSH", m.cmdBrpoplpush)
@@ -39,16 +39,16 @@ func commandsList(m *Miniredis) {
 }
 
 // BLPOP
-func (m *Miniredis) cmdBlpop(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdBlpop(c *server.Peer, cmd string, args []string) {
 	m.cmdBXpop(c, cmd, args, left)
 }
 
 // BRPOP
-func (m *Miniredis) cmdBrpop(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdBrpop(c *server.Peer, cmd string, args []string) {
 	m.cmdBXpop(c, cmd, args, right)
 }
 
-func (m *Miniredis) cmdBXpop(c *server.Peer, cmd string, args []string, lr leftright) {
+func (m *RediQueue) cmdBXpop(c *server.Peer, cmd string, args []string, lr leftright) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -112,7 +112,7 @@ func (m *Miniredis) cmdBXpop(c *server.Peer, cmd string, args []string, lr leftr
 }
 
 // LINDEX
-func (m *Miniredis) cmdLindex(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLindex(c *server.Peer, cmd string, args []string) {
 	if len(args) != 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -158,7 +158,7 @@ func (m *Miniredis) cmdLindex(c *server.Peer, cmd string, args []string) {
 }
 
 // LINSERT
-func (m *Miniredis) cmdLinsert(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLinsert(c *server.Peer, cmd string, args []string) {
 	if len(args) != 4 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -222,7 +222,7 @@ func (m *Miniredis) cmdLinsert(c *server.Peer, cmd string, args []string) {
 }
 
 // LLEN
-func (m *Miniredis) cmdLlen(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLlen(c *server.Peer, cmd string, args []string) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -253,16 +253,16 @@ func (m *Miniredis) cmdLlen(c *server.Peer, cmd string, args []string) {
 }
 
 // LPOP
-func (m *Miniredis) cmdLpop(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLpop(c *server.Peer, cmd string, args []string) {
 	m.cmdXpop(c, cmd, args, left)
 }
 
 // RPOP
-func (m *Miniredis) cmdRpop(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdRpop(c *server.Peer, cmd string, args []string) {
 	m.cmdXpop(c, cmd, args, right)
 }
 
-func (m *Miniredis) cmdXpop(c *server.Peer, cmd string, args []string, lr leftright) {
+func (m *RediQueue) cmdXpop(c *server.Peer, cmd string, args []string, lr leftright) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -299,16 +299,16 @@ func (m *Miniredis) cmdXpop(c *server.Peer, cmd string, args []string, lr leftri
 }
 
 // LPUSH
-func (m *Miniredis) cmdLpush(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLpush(c *server.Peer, cmd string, args []string) {
 	m.cmdXpush(c, cmd, args, left)
 }
 
 // RPUSH
-func (m *Miniredis) cmdRpush(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdRpush(c *server.Peer, cmd string, args []string) {
 	m.cmdXpush(c, cmd, args, right)
 }
 
-func (m *Miniredis) cmdXpush(c *server.Peer, cmd string, args []string, lr leftright) {
+func (m *RediQueue) cmdXpush(c *server.Peer, cmd string, args []string, lr leftright) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -342,16 +342,16 @@ func (m *Miniredis) cmdXpush(c *server.Peer, cmd string, args []string, lr leftr
 }
 
 // LPUSHX
-func (m *Miniredis) cmdLpushx(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLpushx(c *server.Peer, cmd string, args []string) {
 	m.cmdXpushx(c, cmd, args, left)
 }
 
 // RPUSHX
-func (m *Miniredis) cmdRpushx(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdRpushx(c *server.Peer, cmd string, args []string) {
 	m.cmdXpushx(c, cmd, args, right)
 }
 
-func (m *Miniredis) cmdXpushx(c *server.Peer, cmd string, args []string, lr leftright) {
+func (m *RediQueue) cmdXpushx(c *server.Peer, cmd string, args []string, lr leftright) {
 	if len(args) < 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -389,7 +389,7 @@ func (m *Miniredis) cmdXpushx(c *server.Peer, cmd string, args []string, lr left
 }
 
 // LRANGE
-func (m *Miniredis) cmdLrange(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLrange(c *server.Peer, cmd string, args []string) {
 	if len(args) != 3 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -436,7 +436,7 @@ func (m *Miniredis) cmdLrange(c *server.Peer, cmd string, args []string) {
 }
 
 // LREM
-func (m *Miniredis) cmdLrem(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLrem(c *server.Peer, cmd string, args []string) {
 	if len(args) != 3 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -494,7 +494,7 @@ func (m *Miniredis) cmdLrem(c *server.Peer, cmd string, args []string) {
 			reverseSlice(newL)
 		}
 		if len(newL) == 0 {
-			db.del(key, true)
+			db.del(key)
 		} else {
 			db.listKeys[key] = newL
 			db.keyVersion[key]++
@@ -505,7 +505,7 @@ func (m *Miniredis) cmdLrem(c *server.Peer, cmd string, args []string) {
 }
 
 // LSET
-func (m *Miniredis) cmdLset(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLset(c *server.Peer, cmd string, args []string) {
 	if len(args) != 3 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -552,7 +552,7 @@ func (m *Miniredis) cmdLset(c *server.Peer, cmd string, args []string) {
 }
 
 // LTRIM
-func (m *Miniredis) cmdLtrim(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdLtrim(c *server.Peer, cmd string, args []string) {
 	if len(args) != 3 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -593,7 +593,7 @@ func (m *Miniredis) cmdLtrim(c *server.Peer, cmd string, args []string) {
 		rs, re := redisRange(len(l), start, end, false)
 		l = l[rs:re]
 		if len(l) == 0 {
-			db.del(key, true)
+			db.del(key)
 		} else {
 			db.listKeys[key] = l
 			db.keyVersion[key]++
@@ -603,7 +603,7 @@ func (m *Miniredis) cmdLtrim(c *server.Peer, cmd string, args []string) {
 }
 
 // RPOPLPUSH
-func (m *Miniredis) cmdRpoplpush(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdRpoplpush(c *server.Peer, cmd string, args []string) {
 	if len(args) != 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -633,7 +633,7 @@ func (m *Miniredis) cmdRpoplpush(c *server.Peer, cmd string, args []string) {
 }
 
 // BRPOPLPUSH
-func (m *Miniredis) cmdBrpoplpush(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdBrpoplpush(c *server.Peer, cmd string, args []string) {
 	if len(args) != 3 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))

@@ -1,193 +1,35 @@
 // Commands from http://redis.io/commands#generic
 
-package miniredis
+package rediqueue
 
 import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/alicebob/miniredis/server"
+	"github.com/chinahdkj/rediqueue/server"
 )
 
 // commandsGeneric handles EXPIRE, TTL, PERSIST, &c.
-func commandsGeneric(m *Miniredis) {
+func commandsGeneric(m *RediQueue) {
 	m.srv.Register("DEL", m.cmdDel)
 	// DUMP
 	m.srv.Register("EXISTS", m.cmdExists)
-	m.srv.Register("EXPIRE", makeCmdExpire(m, false, time.Second))
-	m.srv.Register("EXPIREAT", makeCmdExpire(m, true, time.Second))
 	m.srv.Register("KEYS", m.cmdKeys)
 	// MIGRATE
 	m.srv.Register("MOVE", m.cmdMove)
 	// OBJECT
-	m.srv.Register("PERSIST", m.cmdPersist)
-	m.srv.Register("PEXPIRE", makeCmdExpire(m, false, time.Millisecond))
-	m.srv.Register("PEXPIREAT", makeCmdExpire(m, true, time.Millisecond))
-	m.srv.Register("PTTL", m.cmdPTTL)
 	m.srv.Register("RANDOMKEY", m.cmdRandomkey)
 	m.srv.Register("RENAME", m.cmdRename)
 	m.srv.Register("RENAMENX", m.cmdRenamenx)
 	// RESTORE
 	// SORT
-	m.srv.Register("TTL", m.cmdTTL)
 	m.srv.Register("TYPE", m.cmdType)
 	m.srv.Register("SCAN", m.cmdScan)
 }
 
-// generic expire command for EXPIRE, PEXPIRE, EXPIREAT, PEXPIREAT
-// d is the time unit. If unix is set it'll be seen as a unixtimestamp and
-// converted to a duration.
-func makeCmdExpire(m *Miniredis, unix bool, d time.Duration) func(*server.Peer, string, []string) {
-	return func(c *server.Peer, cmd string, args []string) {
-		if len(args) != 2 {
-			setDirty(c)
-			c.WriteError(errWrongNumber(cmd))
-			return
-		}
-		if !m.handleAuth(c) {
-			return
-		}
-
-		key := args[0]
-		value := args[1]
-		i, err := strconv.Atoi(value)
-		if err != nil {
-			setDirty(c)
-			c.WriteError(msgInvalidInt)
-			return
-		}
-
-		withTx(m, c, func(c *server.Peer, ctx *connCtx) {
-			db := m.db(ctx.selectedDB)
-
-			// Key must be present.
-			if _, ok := db.keys[key]; !ok {
-				c.WriteInt(0)
-				return
-			}
-			if unix {
-				var ts time.Time
-				switch d {
-				case time.Millisecond:
-					ts = time.Unix(0, int64(i))
-				case time.Second:
-					ts = time.Unix(int64(i), 0)
-				default:
-					panic("invalid time unit (d). Fixme!")
-				}
-				now := m.now
-				if now.IsZero() {
-					now = time.Now().UTC()
-				}
-				db.ttl[key] = ts.Sub(now)
-			} else {
-				db.ttl[key] = time.Duration(i) * d
-			}
-			db.keyVersion[key]++
-			db.checkTTL(key)
-			c.WriteInt(1)
-		})
-	}
-}
-
-// TTL
-func (m *Miniredis) cmdTTL(c *server.Peer, cmd string, args []string) {
-	if len(args) != 1 {
-		setDirty(c)
-		c.WriteError(errWrongNumber(cmd))
-		return
-	}
-	if !m.handleAuth(c) {
-		return
-	}
-	key := args[0]
-
-	withTx(m, c, func(c *server.Peer, ctx *connCtx) {
-		db := m.db(ctx.selectedDB)
-
-		if _, ok := db.keys[key]; !ok {
-			// No such key
-			c.WriteInt(-2)
-			return
-		}
-
-		v, ok := db.ttl[key]
-		if !ok {
-			// no expire value
-			c.WriteInt(-1)
-			return
-		}
-		c.WriteInt(int(v.Seconds()))
-	})
-}
-
-// PTTL
-func (m *Miniredis) cmdPTTL(c *server.Peer, cmd string, args []string) {
-	if len(args) != 1 {
-		setDirty(c)
-		c.WriteError(errWrongNumber(cmd))
-		return
-	}
-	if !m.handleAuth(c) {
-		return
-	}
-	key := args[0]
-
-	withTx(m, c, func(c *server.Peer, ctx *connCtx) {
-		db := m.db(ctx.selectedDB)
-
-		if _, ok := db.keys[key]; !ok {
-			// no such key
-			c.WriteInt(-2)
-			return
-		}
-
-		v, ok := db.ttl[key]
-		if !ok {
-			// no expire value
-			c.WriteInt(-1)
-			return
-		}
-		c.WriteInt(int(v.Nanoseconds() / 1000000))
-	})
-}
-
-// PERSIST
-func (m *Miniredis) cmdPersist(c *server.Peer, cmd string, args []string) {
-	if len(args) != 1 {
-		setDirty(c)
-		c.WriteError(errWrongNumber(cmd))
-		return
-	}
-	if !m.handleAuth(c) {
-		return
-	}
-	key := args[0]
-
-	withTx(m, c, func(c *server.Peer, ctx *connCtx) {
-		db := m.db(ctx.selectedDB)
-
-		if _, ok := db.keys[key]; !ok {
-			// no such key
-			c.WriteInt(0)
-			return
-		}
-
-		if _, ok := db.ttl[key]; !ok {
-			// no expire value
-			c.WriteInt(0)
-			return
-		}
-		delete(db.ttl, key)
-		db.keyVersion[key]++
-		c.WriteInt(1)
-	})
-}
-
 // DEL
-func (m *Miniredis) cmdDel(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdDel(c *server.Peer, cmd string, args []string) {
 	if !m.handleAuth(c) {
 		return
 	}
@@ -200,14 +42,14 @@ func (m *Miniredis) cmdDel(c *server.Peer, cmd string, args []string) {
 			if db.exists(key) {
 				count++
 			}
-			db.del(key, true) // delete expire
+			db.del(key) // delete expire
 		}
 		c.WriteInt(count)
 	})
 }
 
 // TYPE
-func (m *Miniredis) cmdType(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdType(c *server.Peer, cmd string, args []string) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError("usage error")
@@ -233,7 +75,7 @@ func (m *Miniredis) cmdType(c *server.Peer, cmd string, args []string) {
 }
 
 // EXISTS
-func (m *Miniredis) cmdExists(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdExists(c *server.Peer, cmd string, args []string) {
 	if len(args) < 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -257,7 +99,7 @@ func (m *Miniredis) cmdExists(c *server.Peer, cmd string, args []string) {
 }
 
 // MOVE
-func (m *Miniredis) cmdMove(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdMove(c *server.Peer, cmd string, args []string) {
 	if len(args) != 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -290,7 +132,7 @@ func (m *Miniredis) cmdMove(c *server.Peer, cmd string, args []string) {
 }
 
 // KEYS
-func (m *Miniredis) cmdKeys(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdKeys(c *server.Peer, cmd string, args []string) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -314,7 +156,7 @@ func (m *Miniredis) cmdKeys(c *server.Peer, cmd string, args []string) {
 }
 
 // RANDOMKEY
-func (m *Miniredis) cmdRandomkey(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdRandomkey(c *server.Peer, cmd string, args []string) {
 	if len(args) != 0 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -343,7 +185,7 @@ func (m *Miniredis) cmdRandomkey(c *server.Peer, cmd string, args []string) {
 }
 
 // RENAME
-func (m *Miniredis) cmdRename(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdRename(c *server.Peer, cmd string, args []string) {
 	if len(args) != 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -369,7 +211,7 @@ func (m *Miniredis) cmdRename(c *server.Peer, cmd string, args []string) {
 }
 
 // RENAMENX
-func (m *Miniredis) cmdRenamenx(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdRenamenx(c *server.Peer, cmd string, args []string) {
 	if len(args) != 2 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -400,7 +242,7 @@ func (m *Miniredis) cmdRenamenx(c *server.Peer, cmd string, args []string) {
 }
 
 // SCAN
-func (m *Miniredis) cmdScan(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdScan(c *server.Peer, cmd string, args []string) {
 	if len(args) < 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))

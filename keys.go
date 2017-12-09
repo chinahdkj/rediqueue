@@ -1,4 +1,4 @@
-package miniredis
+package rediqueue
 
 // Translate the 'KEYS' argument ('foo*', 'f??', &c.) into a regexp.
 

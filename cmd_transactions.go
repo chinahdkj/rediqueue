@@ -1,13 +1,13 @@
 // Commands from http://redis.io/commands#transactions
 
-package miniredis
+package rediqueue
 
 import (
-	"github.com/alicebob/miniredis/server"
+	"github.com/chinahdkj/rediqueue/server"
 )
 
 // commandsTransaction handles MULTI &c.
-func commandsTransaction(m *Miniredis) {
+func commandsTransaction(m *RediQueue) {
 	m.srv.Register("DISCARD", m.cmdDiscard)
 	m.srv.Register("EXEC", m.cmdExec)
 	m.srv.Register("MULTI", m.cmdMulti)
@@ -16,7 +16,7 @@ func commandsTransaction(m *Miniredis) {
 }
 
 // MULTI
-func (m *Miniredis) cmdMulti(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdMulti(c *server.Peer, cmd string, args []string) {
 	if len(args) != 0 {
 		c.WriteError(errWrongNumber(cmd))
 		return
@@ -38,7 +38,7 @@ func (m *Miniredis) cmdMulti(c *server.Peer, cmd string, args []string) {
 }
 
 // EXEC
-func (m *Miniredis) cmdExec(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdExec(c *server.Peer, cmd string, args []string) {
 	if len(args) != 0 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -84,7 +84,7 @@ func (m *Miniredis) cmdExec(c *server.Peer, cmd string, args []string) {
 }
 
 // DISCARD
-func (m *Miniredis) cmdDiscard(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdDiscard(c *server.Peer, cmd string, args []string) {
 	if len(args) != 0 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -105,7 +105,7 @@ func (m *Miniredis) cmdDiscard(c *server.Peer, cmd string, args []string) {
 }
 
 // WATCH
-func (m *Miniredis) cmdWatch(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdWatch(c *server.Peer, cmd string, args []string) {
 	if len(args) == 0 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -132,7 +132,7 @@ func (m *Miniredis) cmdWatch(c *server.Peer, cmd string, args []string) {
 }
 
 // UNWATCH
-func (m *Miniredis) cmdUnwatch(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdUnwatch(c *server.Peer, cmd string, args []string) {
 	if len(args) != 0 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))

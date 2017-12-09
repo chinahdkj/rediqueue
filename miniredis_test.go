@@ -1,8 +1,7 @@
-package miniredis
+package rediqueue
 
 import (
 	"testing"
-	"time"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -49,7 +48,7 @@ func TestRestart(t *testing.T) {
 	ok(t, err)
 	addr := s.Addr()
 
-	s.Set("color", "red")
+	s.Lpush("color", "red")
 
 	s.Close()
 	err = s.Restart()
@@ -63,7 +62,7 @@ func TestRestart(t *testing.T) {
 	_, err = c.Do("PING")
 	ok(t, err)
 
-	red, err := redis.String(c.Do("GET", "color"))
+	red, err := redis.String(c.Do("LPOP", "color"))
 	ok(t, err)
 	if have, want := red, "red"; have != want {
 		t.Errorf("have: %s, want: %s", have, want)
@@ -72,7 +71,7 @@ func TestRestart(t *testing.T) {
 
 // Test a custom addr
 func TestAddr(t *testing.T) {
-	m := NewMiniRedis()
+	m := NewRediQueue()
 	err := m.StartAddr("127.0.0.1:7887")
 	ok(t, err)
 	defer m.Close()
@@ -81,49 +80,6 @@ func TestAddr(t *testing.T) {
 	ok(t, err)
 	_, err = c.Do("PING")
 	ok(t, err)
-}
-
-func TestDump(t *testing.T) {
-	s, err := Run()
-	ok(t, err)
-	s.Set("aap", "noot")
-	s.Set("vuur", "mies")
-	s.HSet("ahash", "aap", "noot")
-	s.HSet("ahash", "vuur", "mies")
-	if have, want := s.Dump(), `- aap
-   "noot"
-- ahash
-   aap: "noot"
-   vuur: "mies"
-- vuur
-   "mies"
-`; have != want {
-		t.Errorf("have: %q, want: %q", have, want)
-	}
-
-	// Tricky whitespace
-	s.Select(1)
-	s.Set("whitespace", "foo\nbar\tbaz!")
-	if have, want := s.Dump(), `- whitespace
-   "foo\nbar\tbaz!"
-`; have != want {
-		t.Errorf("have: %q, want: %q", have, want)
-	}
-
-	// Long key
-	s.Select(2)
-	s.Set("long", "This is a rather long key, with some fox jumping over a fence or something.")
-	s.Set("countonme", "0123456789012345678901234567890123456789012345678901234567890123456789")
-	s.HSet("hlong", "long", "This is another rather long key, with some fox jumping over a fence or something.")
-	if have, want := s.Dump(), `- countonme
-   "01234567890123456789012345678901234567890123456789012"...(70)
-- hlong
-   long: "This is another rather long key, with some fox jumpin"...(81)
-- long
-   "This is a rather long key, with some fox jumping over"...(75)
-`; have != want {
-		t.Errorf("have: %q, want: %q", have, want)
-	}
 }
 
 func TestDumpList(t *testing.T) {
@@ -154,60 +110,4 @@ func TestDumpSet(t *testing.T) {
 `; have != want {
 		t.Errorf("have: %q, want: %q", have, want)
 	}
-}
-
-func TestDumpSortedSet(t *testing.T) {
-	s, err := Run()
-	ok(t, err)
-	s.ZAdd("elements", 2.0, "wind")
-	s.ZAdd("elements", 3.0, "earth")
-	s.ZAdd("elements", 1.0, "fire")
-	if have, want := s.Dump(), `- elements
-   1.000000: "fire"
-   2.000000: "wind"
-   3.000000: "earth"
-`; have != want {
-		t.Errorf("have: %q, want: %q", have, want)
-	}
-}
-
-func TestKeysAndFlush(t *testing.T) {
-	s, err := Run()
-	ok(t, err)
-	s.Set("aap", "noot")
-	s.Set("vuur", "mies")
-	s.Set("muur", "oom")
-	s.HSet("hash", "key", "value")
-	equals(t, []string{"aap", "hash", "muur", "vuur"}, s.Keys())
-
-	s.Select(1)
-	s.Set("1aap", "1noot")
-	equals(t, []string{"1aap"}, s.Keys())
-
-	s.Select(0)
-	s.FlushDB()
-	equals(t, []string{}, s.Keys())
-	s.Select(1)
-	equals(t, []string{"1aap"}, s.Keys())
-
-	s.Select(0)
-	s.FlushAll()
-	equals(t, []string{}, s.Keys())
-	s.Select(1)
-	equals(t, []string{}, s.Keys())
-}
-
-func TestExpireWithFastForward(t *testing.T) {
-	s, err := Run()
-	ok(t, err)
-
-	s.Set("aap", "noot")
-	s.Set("noot", "aap")
-	s.SetTTL("aap", 10*time.Second)
-
-	s.FastForward(5 * time.Second)
-	equals(t, 2, len(s.Keys()))
-
-	s.FastForward(5 * time.Second)
-	equals(t, 1, len(s.Keys()))
 }

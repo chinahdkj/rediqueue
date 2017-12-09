@@ -1,4 +1,4 @@
-package miniredis
+package rediqueue
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alicebob/miniredis/server"
+	"github.com/chinahdkj/rediqueue/server"
 )
 
 const (
@@ -35,7 +35,7 @@ func errWrongNumber(cmd string) string {
 // withTx wraps the non-argument-checking part of command handling code in
 // transaction logic.
 func withTx(
-	m *Miniredis,
+	m *RediQueue,
 	c *server.Peer,
 	cb txCmd,
 ) {
@@ -58,7 +58,7 @@ type blockCmd func(*server.Peer, *connCtx) bool
 // blocking keeps trying a command until the callback returns true. Calls
 // onTimeout after the timeout (or when we call this in a transaction).
 func blocking(
-	m *Miniredis,
+	m *RediQueue,
 	c *server.Peer,
 	timeout time.Duration,
 	cb blockCmd,

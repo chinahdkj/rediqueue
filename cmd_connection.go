@@ -1,14 +1,14 @@
 // Commands from http://redis.io/commands#connection
 
-package miniredis
+package rediqueue
 
 import (
 	"strconv"
 
-	"github.com/alicebob/miniredis/server"
+	"github.com/chinahdkj/rediqueue/server"
 )
 
-func commandsConnection(m *Miniredis) {
+func commandsConnection(m *RediQueue) {
 	m.srv.Register("AUTH", m.cmdAuth)
 	m.srv.Register("ECHO", m.cmdEcho)
 	m.srv.Register("PING", m.cmdPing)
@@ -17,7 +17,7 @@ func commandsConnection(m *Miniredis) {
 }
 
 // PING
-func (m *Miniredis) cmdPing(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdPing(c *server.Peer, cmd string, args []string) {
 	if !m.handleAuth(c) {
 		return
 	}
@@ -25,7 +25,7 @@ func (m *Miniredis) cmdPing(c *server.Peer, cmd string, args []string) {
 }
 
 // AUTH
-func (m *Miniredis) cmdAuth(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdAuth(c *server.Peer, cmd string, args []string) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -49,7 +49,7 @@ func (m *Miniredis) cmdAuth(c *server.Peer, cmd string, args []string) {
 }
 
 // ECHO
-func (m *Miniredis) cmdEcho(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdEcho(c *server.Peer, cmd string, args []string) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -64,7 +64,7 @@ func (m *Miniredis) cmdEcho(c *server.Peer, cmd string, args []string) {
 }
 
 // SELECT
-func (m *Miniredis) cmdSelect(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdSelect(c *server.Peer, cmd string, args []string) {
 	if len(args) != 1 {
 		setDirty(c)
 		c.WriteError(errWrongNumber(cmd))
@@ -89,7 +89,7 @@ func (m *Miniredis) cmdSelect(c *server.Peer, cmd string, args []string) {
 }
 
 // QUIT
-func (m *Miniredis) cmdQuit(c *server.Peer, cmd string, args []string) {
+func (m *RediQueue) cmdQuit(c *server.Peer, cmd string, args []string) {
 	// QUIT isn't transactionfied and accepts any arguments.
 	c.WriteOK()
 	c.Close()

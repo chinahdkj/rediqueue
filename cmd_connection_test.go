@@ -1,4 +1,4 @@
-package miniredis
+package rediqueue
 
 import (
 	"testing"
@@ -7,6 +7,7 @@ import (
 )
 
 func TestAuth(t *testing.T) {
+
 	s, err := Run()
 	ok(t, err)
 	defer s.Close()
@@ -49,28 +50,29 @@ func TestSelect(t *testing.T) {
 	c, err := redis.Dial("tcp", s.Addr())
 	ok(t, err)
 
-	_, err = redis.String(c.Do("SET", "foo", "bar"))
+	_, err = redis.Int(c.Do("LPUSH", "foo", "bar"))
 	ok(t, err)
 
 	_, err = redis.String(c.Do("SELECT", "5"))
 	ok(t, err)
 
-	_, err = redis.String(c.Do("SET", "foo", "baz"))
+	_, err = redis.Int(c.Do("LPUSH", "foo", "baz"))
 	ok(t, err)
 
 	// Direct access.
-	got, err := s.Get("foo")
+	got, err := s.Lpop("foo")
 	ok(t, err)
 	equals(t, "bar", got)
 	s.Select(5)
-	got, err = s.Get("foo")
+	got, err = s.Lpop("foo")
 	ok(t, err)
 	equals(t, "baz", got)
 
 	// Another connection should have its own idea of the db:
 	c2, err := redis.Dial("tcp", s.Addr())
 	ok(t, err)
-	v, err := redis.String(c2.Do("GET", "foo"))
+	redis.Int(c2.Do("LPUSH", "foo", "bar"))
+	v, err := redis.String(c2.Do("LPOP", "foo"))
 	ok(t, err)
 	equals(t, "bar", v)
 }
